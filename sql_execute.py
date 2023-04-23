@@ -30,3 +30,27 @@ create_table = """CREATE TABLE IF NOT EXISTS projects (
                         description_project TEXT,
                         name_project  TEXT
                     )"""
+
+insert_table = ''' INSERT INTO projects ( name,
+                            description,
+                            domen,
+                            technology,
+                            metod,
+                            func_group,
+                            potencial_dec,
+                            potencial_rate,
+                            market_rate,
+                            market_mat,
+                            readiness_rate,
+                            readiness,
+                            implementation,
+                            Benchmarking,
+                            Benchmarking_description,
+                            Benchmarking_company,
+                            name_project_gpn,
+                            description_project,
+                            name_project)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+
+test_tech = """SELECT name, metod FROM projects WHERE technology = 'VR'"""

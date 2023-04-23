@@ -11,33 +11,56 @@ worksheet = workbook['ОСНОВНАЯ']
 conn = sqlite3.connect('base.db')
 cur = conn.cursor()
 
-cur.execute(create_table)
-# cur.execute(add_test)
+def new_table():
+    cur.execute(create_table)
+    # cur.execute(add_test)
 
-for row in worksheet.iter_rows(min_row=2, values_only=True):
-    cur.execute (
-        ''' INSERT INTO projects ( name,
-                        description,
-                        domen,
-                        technology,
-                        metod,
-                        func_group,
-                        potencial_dec,
-                        potencial_rate,
-                        market_rate,
-                        market_mat,
-                        readiness_rate,
-                        readiness,
-                        implementation,
-                        Benchmarking,
-                        Benchmarking_description,
-                        Benchmarking_company,
-                        name_project_gpn,
-                        description_project,
-                        name_project)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', row)
+    for row in worksheet.iter_rows(min_row=2, values_only=True):
+        cur.execute(insert_table, row)
 
-conn.commit()
-A = 1
+def get_list_of_categories(order, where):
+    # устанавливаем соединение с БД
+    # формируем запрос SQL
+    columns = ['name', 'domen', 'technology', 'metod', 'func_group']
+    sql = f"SELECT {', '.join(columns)} FROM projects"
+
+    if where:
+        sql += " WHERE " + " AND ".join(f"{k} = ?" for k in where.keys())
+
+    if order in columns:
+        sql += f" ORDER BY {order}"
+    else:
+        sql += f" ORDER BY {columns[0]}"
+
+    # выполняем запрос и получаем результат
+    cur.execute(sql, tuple(where.values()))
+    result = cur.fetchall()
+
+    # закрываем соединение с БД
+    # cur.close()
+    # conn.close()
+
+    # возвращаем результат
+    return result
+
+# cur.execute(test_tech)
+#
+# ans = cur.fetchone()
+
+# order = 'domen'
+#
+# where = {
+#     'technology': 'VR',
+#     'metod': 'Обучение и тестирование персонала'
+# }
+#
+# print(get_list_of_categories(order, where))
+# # for column in ans:
+# #     print('_' * 50)
+# #     for i in ans:
+# #         for j in i:
+# #             print(j, '|  ', end='')
+# #         print('\n', '-' * 50, sep='')
+# conn.commit()
+# A = 1
 
