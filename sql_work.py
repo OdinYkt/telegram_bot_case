@@ -18,10 +18,11 @@ def new_table():
     for row in worksheet.iter_rows(min_row=2, values_only=True):
         cur.execute(insert_table, row)
 
-def get_list_of_categories(order, where):
+def get_columns_with_filter(order, where):
     # устанавливаем соединение с БД
     # формируем запрос SQL
     columns = ['name', 'domen', 'technology', 'metod', 'func_group']
+    # columns = ['name']
     sql = f"SELECT {', '.join(columns)} FROM projects"
 
     if where:
@@ -43,6 +44,29 @@ def get_list_of_categories(order, where):
     # возвращаем результат
     return result
 
+
+def get_list_of_categories(order, where):
+    # conn = sqlite3.connect('database.db')
+    # cursor = conn.cursor()
+
+    query = f"SELECT DISTINCT {order} FROM projects WHERE "
+    flag = False
+    for key, value in where.items():
+        if value:
+            query += f"{key}='{value}' AND "
+            flag = True
+    if flag:
+        query = query[:-4]
+    else:
+        query = query[:-7]
+    cur.execute(query)
+    results = cur.fetchall()
+
+    # cursor.close()
+    # conn.close()
+
+    return [result[0] for result in results]
+
 # cur.execute(test_tech)
 #
 # ans = cur.fetchone()
@@ -50,17 +74,18 @@ def get_list_of_categories(order, where):
 # order = 'domen'
 #
 # where = {
-#     'technology': 'VR',
-#     'metod': 'Обучение и тестирование персонала'
+#     'func_group': 'Корпоративные функции'
 # }
 #
+# # print(get_columns_with_filter(order, where))
 # print(get_list_of_categories(order, where))
-# # for column in ans:
-# #     print('_' * 50)
-# #     for i in ans:
-# #         for j in i:
-# #             print(j, '|  ', end='')
-# #         print('\n', '-' * 50, sep='')
-# conn.commit()
-# A = 1
+
+# for column in ans:
+#     print('_' * 50)
+#     for i in ans:
+#         for j in i:
+#             print(j, '|  ', end='')
+#         print('\n', '-' * 50, sep='')
+conn.commit()
+A = 1
 

@@ -1,6 +1,6 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
-
+from sql_work import get_list_of_categories, get_columns_with_filter
 import asyncio
 
 
@@ -12,14 +12,16 @@ def get_config():
             config[tmp[0]] = tmp[1]
     return config
 
-
 TOKEN = get_config()['TOKEN']
 bot = AsyncTeleBot(TOKEN, parse_mode=None)
 users = {}
 empty_user = {
+    'filter': {
         'domen': '',
-        'tech': '',
-        'func_group': ''
+        'technology': '',
+        'func_group': '',
+        'metod': ''}
+
     }
 
 @bot.message_handler(commands=['start'])
@@ -50,18 +52,20 @@ async def get_message(message):
 
 @bot.message_handler(func=lambda message: message.text in ('Домен', 'Функциональная группа', 'Технология'))
 async def get_message(message):
-    answer = ''
+    answer = 'Что-то пошло не так.'
     if message.text == 'Домен':
-        answer = 'Список доменов'
+        order = 'domen'
+        answer = 'Выберите интересующий вас домен:'
     elif message.text == 'Функциональная группа':
-        answer = 'Список функ'
-    else:
-        answer = 'Список технологий'
-    # markup = types.InlineKeyboardMarkup(row_width=1)
-    # btns = [types.InlineKeyboardMarkup(str(i)) for i in range(10)]
-    # markup.add(btns)
-    btns = ['Button 1', 'Button 2', 'Button 3']
-    keyboard = [[types.InlineKeyboardButton(text=button, callback_data=button)] for button in btns]
+        order = 'func_group'
+        answer = 'Выберите интересующую вас функциональную группу:'
+    elif message.text == 'Технология':
+        order = 'technology'
+        answer = 'Выберите интересующую вас технологию:'
+
+    btns = get_list_of_categories(order, users.get(message.chat.id).get('filter'))
+    print(btns)
+    keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"button_{i}")] for i in range(len(btns))]
     markup = types.InlineKeyboardMarkup(keyboard)
     await bot.send_message(message.chat.id, answer, reply_markup=markup)
 
