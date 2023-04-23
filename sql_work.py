@@ -11,6 +11,7 @@ worksheet = workbook['ОСНОВНАЯ']
 conn = sqlite3.connect('base.db')
 cur = conn.cursor()
 
+
 def new_table():
     cur.execute(create_table)
     # cur.execute(add_test)
@@ -18,23 +19,36 @@ def new_table():
     for row in worksheet.iter_rows(min_row=2, values_only=True):
         cur.execute(insert_table, row)
 
-def get_columns_with_filter(order, where):
+
+def get_columns_with_filter(where, columns=None, order=None):
     # устанавливаем соединение с БД
     # формируем запрос SQL
-    columns = ['name', 'domen', 'technology', 'metod', 'func_group']
-    # columns = ['name']
-    sql = f"SELECT {', '.join(columns)} FROM projects"
+    # columns = ['name', 'domen', 'technology', 'metod', 'func_group']
+    if columns is None:
+        columns = ['name']
 
-    if where:
-        sql += " WHERE " + " AND ".join(f"{k} = ?" for k in where.keys())
+    query = f"SELECT {', '.join(columns)} FROM projects WHERE "
 
-    if order in columns:
-        sql += f" ORDER BY {order}"
+    flag = False
+    for key, value in where.items():
+        if value:
+            query += f"{key}='{value}' AND "
+            flag = True
+    if flag:
+        query = query[:-4]
     else:
-        sql += f" ORDER BY {columns[0]}"
+        query = query[:-7]
+
+    # if where:
+    #     sql += " WHERE " + " AND ".join(f"{k} = ?" for k in where.keys())
+
+    if order and order in columns:
+        query += f" ORDER BY {order}"
+    else:
+        query += f" ORDER BY {columns[0]}"
 
     # выполняем запрос и получаем результат
-    cur.execute(sql, tuple(where.values()))
+    cur.execute(query)
     result = cur.fetchall()
 
     # закрываем соединение с БД
@@ -59,6 +73,8 @@ def get_list_of_categories(order, where):
         query = query[:-4]
     else:
         query = query[:-7]
+
+    query += f' ORDER BY {order}'
     cur.execute(query)
     results = cur.fetchall()
 
