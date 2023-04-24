@@ -14,6 +14,19 @@ def get_config():
             config[tmp[0]] = tmp[1]
     return config
 
+
+def add_line_breaks(text, n):
+    words = text.split()
+    result = ''
+    current_line = ''
+    for word in words:
+        if len(current_line) + len(word) > n:
+            result += current_line.strip() + ' <br> '
+            current_line = ''
+        current_line += word + ' '
+    result += current_line.strip()
+    return result
+
 TOKEN = get_config()['TOKEN']
 bot = AsyncTeleBot(TOKEN, parse_mode=None)
 users = {}
@@ -22,13 +35,18 @@ empty_user = {
         'domen': '',
         'technology': '',
         'func_group': '',
-        'metod': ''},
+        'metod': ''
+    },
     'tmp_list': {
         'domen': [],
         'technology': [],
         'func_group': [],
-        'metod': [],
-        'name': []
+        'metod': []
+    },
+    'keyboard': {
+        'index': 0,
+        'names': [],
+        'page': 0
     }
     }
 
@@ -50,14 +68,17 @@ async def get_message(message):
     btn3 = types.KeyboardButton('Технология')
     btn4 = types.KeyboardButton('Показать выбранные')
     btn5 = types.KeyboardButton('Сбросить')
+    # btn6 = types.KeyboardButton('<-')
+    # btn7 = types.KeyboardButton('->')
     markup.add(btn1, btn2, btn3)
     markup.add(btn4, btn5)
+    # markup.add(btn6, btn7)
     await bot.send_message(message.chat.id, 'Выберите по какому параметру будем фильтровать', reply_markup=markup)
 
 
 @bot.message_handler(func=lambda message: message.text == 'Сбросить')
 async def get_message(message):
-    #прописать вывод инструкции
+    users[message.chat.id] = copy.deepcopy(empty_user)
     await bot.send_message(message.chat.id, 'Фильтры сброшены. Можете начать заново.')
 
 
@@ -96,13 +117,21 @@ async def get_message(message):
 async def get_projects(message):
     order = 'name'
     answer = 'Список проектов по вашим фильтрам:'
-    btns = get_columns_with_filter(where=users.get(message.chat.id).get('filter'))
+    projects = get_columns_with_filter(where=users.get(message.chat.id).get('filter'))
+    # for i in range(len(projects)):
+    #     projects[i] = add_line_breaks(projects[i], 40)
 
+    keyboard = users.get(message.chat.id).get('keyboard')
+    page = keyboard.get('page')
+
+    keyboard['names'] = [projects[i:i+10] for i in range(0, len(projects), 10)]
+
+    btns = keyboard.get('names')[page]
     users.get(message.chat.id).get('tmp_list')[order] = btns
-    keyboard = [[types.InlineKeyboardButton(text=btns[i][0], callback_data=f"{order}-button-{i}")]
+    keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-project-{i}")]
                 for i in range(len(btns))]
     markup = types.InlineKeyboardMarkup(keyboard)
-    await bot.send_message(message.chat.id, answer, reply_markup=markup)
+    await bot.send_message(message.chat.id, answer, reply_markup=markup, parse_mode='HTML')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[0] == 'name')

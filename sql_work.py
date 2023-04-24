@@ -49,14 +49,14 @@ def get_columns_with_filter(where, columns=None, order=None):
 
     # выполняем запрос и получаем результат
     cur.execute(query)
-    result = cur.fetchall()
+    results = cur.fetchall()
 
     # закрываем соединение с БД
     # cur.close()
     # conn.close()
 
     # возвращаем результат
-    return result
+    return [result[0] for result in results]
 
 
 def get_list_of_categories(order, where):
