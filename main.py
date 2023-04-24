@@ -15,18 +15,6 @@ def get_config():
     return config
 
 
-def add_line_breaks(text, n):
-    words = text.split()
-    result = ''
-    current_line = ''
-    for word in words:
-        if len(current_line) + len(word) > n:
-            result += current_line.strip() + ' <br> '
-            current_line = ''
-        current_line += word + ' '
-    result += current_line.strip()
-    return result
-
 TOKEN = get_config()['TOKEN']
 bot = AsyncTeleBot(TOKEN, parse_mode=None)
 users = {}
@@ -35,7 +23,8 @@ empty_user = {
         'domen': '',
         'technology': '',
         'func_group': '',
-        'metod': ''
+        'metod': '',
+        'name': ''
     },
     'tmp_list': {
         'domen': [],
@@ -43,10 +32,11 @@ empty_user = {
         'func_group': [],
         'metod': []
     },
-    'keyboard': {
+    'project_menu': {
         'index': 0,
         'names': [],
-        'page': 0
+        'page': 0,
+        'pages': 0
     }
     }
 
@@ -118,28 +108,74 @@ async def get_projects(message):
     order = 'name'
     answer = 'Список проектов по вашим фильтрам:'
     projects = get_columns_with_filter(where=users.get(message.chat.id).get('filter'))
-    # for i in range(len(projects)):
-    #     projects[i] = add_line_breaks(projects[i], 40)
 
-    keyboard = users.get(message.chat.id).get('keyboard')
-    page = keyboard.get('page')
+    project_menu = users.get(message.chat.id).get('project_menu')
+    page = project_menu.get('page')
 
-    keyboard['names'] = [projects[i:i+10] for i in range(0, len(projects), 10)]
+    project_menu['names'] = [projects[i:i+10] for i in range(0, len(projects), 10)]
 
-    btns = keyboard.get('names')[page]
+    pages = len(project_menu['names'])
+    project_menu['pages'] = pages
+
+    btns = project_menu.get('names')[page]
     users.get(message.chat.id).get('tmp_list')[order] = btns
-    keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-project-{i}")]
+    default = [[types.InlineKeyboardButton(text='⬅', callback_data='page_down'),
+                types.InlineKeyboardButton(text=f'Страница {page+1} из {pages}', callback_data='None'),
+                types.InlineKeyboardButton(text='➡', callback_data='page_up')]]
+
+    keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-name-{i}")]
                 for i in range(len(btns))]
-    markup = types.InlineKeyboardMarkup(keyboard)
-    await bot.send_message(message.chat.id, answer, reply_markup=markup, parse_mode='HTML')
+    default.extend(keyboard)
+    markup = types.InlineKeyboardMarkup(default)
+    await bot.send_message(message.chat.id, answer, reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[0] == 'name')
 async def handle_callback_query(call):
-    await bot.send_message(call.message.chat.id, 'хуй')
+    order, i = call.data.split('-')[0], int(call.data.split('-')[2])
+    project_menu = users.get(call.message.chat.id).get('project_menu')
+    page = project_menu.get('page')
+    cur_btn = project_menu.get('names')[page][i]
+    users.get(call.message.chat.id).get('filter')[order] = cur_btn
+    answer = get_columns_with_filter(where=users.get(call.message.chat.id).get('filter'))
+
+    await bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
+    await bot.send_message(call.message.chat.id, f'Выводим инфу по \n❤  {answer[0]}  ❤')
 
 
-@bot.callback_query_handler(func=lambda call: True)
+@bot.callback_query_handler(func=lambda call: call.data in ('page_down', 'page_up'))
+async def handle_callback_query(call):
+    order = 'name'
+
+    projects = get_columns_with_filter(where=users.get(call.message.chat.id).get('filter'))
+    project_menu = users.get(call.message.chat.id).get('project_menu')
+    page = project_menu.get('page')
+    pages = project_menu.get('pages')
+    flag = False
+
+    if call.data == 'page_down' and page > 0:
+        project_menu['page'] = page - 1
+        page = project_menu.get('page')
+        flag = True
+    elif call.data == 'page_up' and page < pages - 1:
+        project_menu['page'] = page + 1
+        page = project_menu.get('page')
+        flag = True
+    if flag:
+        btns = project_menu.get('names')[page]
+        users.get(call.message.chat.id).get('tmp_list')[order] = btns
+        default = [[types.InlineKeyboardButton(text='⬅', callback_data='page_down'),
+                    types.InlineKeyboardButton(text=f'Страница {page+1} из {pages}', callback_data='None'),
+                    types.InlineKeyboardButton(text='➡', callback_data='page_up')]]
+
+        keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-button-{i}")]
+                    for i in range(len(btns))]
+        default.extend(keyboard)
+        markup = types.InlineKeyboardMarkup(default)
+        await bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split('-')[1] == 'button')
 async def handle_callback_query(call):
     order, i = call.data.split('-')[0], int(call.data.split('-')[2])
     cur_btn = users.get(call.message.chat.id).get('tmp_list').get(order)[i]
@@ -147,7 +183,7 @@ async def handle_callback_query(call):
     number = len(get_columns_with_filter(where=users.get(call.message.chat.id).get('filter')))
     await bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
     await bot.send_message(call.message.chat.id, f'— {cur_btn}')
-    await bot.send_message(call.message.chat.id, f'{number} проектов')
+    await bot.send_message(call.message.chat.id, f'Выбрано {number} записи')
 
 
 
