@@ -253,7 +253,9 @@ async def show_projects(call):
                            f'   <b>{answer[0]}</b>\n'
                            f'\n'
                            f'Описание:\n'
-                           f'   {answer[1]}', parse_mode='HTML')
+                           f'   {answer[1]}'
+                           f'Место для дашборда:\n'
+                           f'   <<dashboard.png>>', parse_mode='HTML')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[1] in ('page_down', 'page_up'))
