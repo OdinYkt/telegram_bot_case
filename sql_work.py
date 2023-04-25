@@ -24,7 +24,9 @@ def get_columns_with_filter(where, columns=None, order=None):
     # устанавливаем соединение с БД
     # формируем запрос SQL
     # columns = ['name', 'domen', 'technology', 'metod', 'func_group']
+    _flag = False
     if columns is None:
+        _flag = True
         columns = ['name']
 
     query = f"SELECT {', '.join(columns)} FROM projects WHERE "
@@ -56,8 +58,10 @@ def get_columns_with_filter(where, columns=None, order=None):
     # conn.close()
 
     # возвращаем результат
-    return [result[0] for result in results]
-
+    if _flag:
+        return [result[0] for result in results]
+    else:
+        return results
 
 def get_list_of_categories(order, where):
     # conn = sqlite3.connect('database.db')
