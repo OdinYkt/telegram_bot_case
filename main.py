@@ -40,7 +40,8 @@ empty_user = {
         'func_group': [],
         'metod': [],
         'name': []
-    }
+    },
+    'for_info': []
     }
 
 guide0 = """Добро пожаловать в бота поиска проектов! 😎😎😎"""
@@ -221,6 +222,27 @@ async def filter_buttons(message):
         await bot.send_message(message.chat.id, answer, reply_markup=markup, parse_mode='HTML')
 
 
+@bot.callback_query_handler(func=lambda call: call.data == 'info')
+async def dop_info(call):
+    info = users.get(call.message.chat.id).get('for_info')
+    info = list(info)
+    for i in range(len(info)):
+        temp = info[i].strip().split('\n')
+        temp = list(filter(bool, temp))
+        new_temp = [f'{i+1}. {x}' for i, x in enumerate(temp)]
+        info[i] = '\n'.join(new_temp)
+
+    answer = f'<b>Наименование | Бенчмаркинг (внешний рынок)</b>:\n{info[0]}\n\n' \
+             f'<b>Описание | Бенчмаркинг (внешний рынок)</b>:\n{info[1]}\n\n' \
+             f'<b>Компания | Бенчмаркинг (внешний рынок)</b>:\n{info[2]}\n\n' \
+             f'___________________________________________________\n' \
+             f'<b>Название проекта в ГПН | НИОКР</b>:\n{info[3]}\n\n' \
+             f'<b>Описание проекта в ГПН | НИОКР</b>:\n{info[4]}\n\n' \
+             f'<b>Название проекта | Проекты ЦТ</b>:\n{info[5]}'
+    await bot.edit_message_reply_markup(call.message.chat.id,
+                                        message_id=call.message.message_id, reply_markup=None)
+    await bot.send_message(call.message.chat.id, answer, parse_mode='HTML')
+
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[0] == 'name'
                                               and call.data.split('-')[1] == 'button')
 async def show_projects(call):
@@ -233,16 +255,25 @@ async def show_projects(call):
     cur_btn = sql_answer.get(order)[page][i]
     filters[order] = cur_btn
     answer = get_columns_with_filter(where=filters, columns=['name', 'description'])[0]
+    dop_info = get_columns_with_filter(where=filters, columns=['Benchmarking',
+                                                               'Benchmarking_description',
+                                                               'Benchmarking_company', 'name_project_gpn',
+                                                               'description_project',
+                                                               'name_project'])[0]
     users[call.message.chat.id] = copy.deepcopy(empty_user)
+    users.get(call.message.chat.id)['for_info'] = dop_info
+    show_info = [[types.InlineKeyboardButton(text='Доп. инфо', callback_data='info')]]
+    markup = types.InlineKeyboardMarkup(show_info)
     await bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
     await bot.send_message(call.message.chat.id,
                            f'Название:\n'
                            f'   <b>{answer[0]}</b>\n'
                            f'\n'
                            f'Описание:\n'
-                           f'   {answer[1]}'
+                           f'   {answer[1]}\n'
                            f'Место для дашборда:\n'
-                           f'   [dashboard.png]', parse_mode='HTML')
+                           f'   [dashboard.png]',
+                           reply_markup=markup, parse_mode='HTML')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[1] in ('page_down', 'page_up'))
@@ -292,8 +323,6 @@ async def show_categories(call):
     filters[order] = btns[i]
     number = len(get_columns_with_filter(where=filters))
 
-    markup = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
-    menu_button = ''
     await bot.edit_message_reply_markup(call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
     await bot.set_chat_menu_button(call.message.chat.id, )
     await bot.send_message(call.message.chat.id, f'— {btns[i]}')
