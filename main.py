@@ -16,19 +16,6 @@ def get_config():
             config[tmp[0]] = tmp[1]
     return config
 
-
-# def get_new_menu(filter):
-#     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-#     row1 = ('Домен', 'Функц. группа', 'Технология', 'Метод исп.')
-#     like = (value for order, value in filter.items())
-#     row1 = [row1[i]+'+' if like[i] is None else row1[i] for i in range(len(row1))]
-#     row2 = ('Показать', 'Сбросить')
-#     btns_row1 = [types.KeyboardButton(btn) for btn in row1]
-#     btns_row2 = [types.KeyboardButton(btn) for btn in row2]
-#     markup.row(*btns_row1)
-#     markup.row(*btns_row2)
-#     return markup
-
 TOKEN = get_config()['TOKEN']
 bot = AsyncTeleBot(TOKEN, parse_mode=None)
 users = {}
@@ -255,7 +242,7 @@ async def show_projects(call):
                            f'Описание:\n'
                            f'   {answer[1]}'
                            f'Место для дашборда:\n'
-                           f'   <<dashboard.png>>', parse_mode='HTML')
+                           f'   [dashboard.png]', parse_mode='HTML')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[1] in ('page_down', 'page_up'))
