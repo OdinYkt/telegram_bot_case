@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import copy
 
 from telebot.async_telebot import AsyncTeleBot
@@ -79,6 +80,26 @@ async def send_welcome(message):
     for _guide in guide:
         await bot.send_message(message.chat.id, _guide, parse_mode='HTML')
 
+@bot.message_handler(commands=['admin_info'])
+async def get_admin_info(message):
+    if message.chat.username == 'Odinykt':
+        await bot.send_message(message.chat.id, str(len(users)), parse_mode='HTML')
+    else:
+        await bot.send_message(message.chat.id, 'Нет доступа.', parse_mode='HTML')
+
+
+@bot.message_handler(commands=['admin_save'])
+async def save_users(message):
+    if message.chat.username == 'Odinykt':
+        path = r'C:\Users\Odinykt\Desktop\users\\'
+        filename = message.text.split()[1] + '.txt'
+        path += filename
+        with open(path, 'w') as f:
+            for key, value in users.items():
+                f.write(f'{message.chat.username}')
+        await bot.send_message(message.chat.id, 'Сохранено.', parse_mode='HTML')
+    else:
+        await bot.send_message(message.chat.id, 'Нет доступа.', parse_mode='HTML')
 @bot.message_handler(commands=['search'])
 async def send_welcome(message):
     if users.get(message.chat.id) is None:
@@ -98,23 +119,28 @@ async def send_welcome(message):
             if rating > percent:
                 result.append([names[i][0], rating])
         sorted_result = sorted(result, key=lambda x: x[1], reverse=True)
-        sorted_result = [x[0] for x in sorted_result]
-        cur_user.get('sql_answer')[order] = [sorted_result[i:i + 10] for i in range(0, len(sorted_result), 10)]
-        page, pages = 0, len(cur_user.get('sql_answer')[order])
-        cur_user.get('for_button')[order] = [page, pages]
+        if sorted_result:
+            sorted_result = [x[0] for x in sorted_result]
+            cur_user.get('sql_answer')[order] = [sorted_result[i:i + 10] for i in range(0, len(sorted_result), 10)]
+            page, pages = 0, len(cur_user.get('sql_answer')[order])
+            cur_user.get('for_button')[order] = [page, pages]
 
-        default = [[types.InlineKeyboardButton(text='⬅', callback_data=f'{order}-page_down'),
-                    types.InlineKeyboardButton(text=f'Стр. {page + 1}/{pages}', callback_data='none-none-none'),
-                    types.InlineKeyboardButton(text='➡', callback_data=f'{order}-page_up')]]
-        btns = cur_user.get('sql_answer')[order][page]
+            default = [[types.InlineKeyboardButton(text='⬅', callback_data=f'{order}-page_down'),
+                        types.InlineKeyboardButton(text=f'Стр. {page + 1}/{pages}', callback_data='none-none-none'),
+                        types.InlineKeyboardButton(text='➡', callback_data=f'{order}-page_up')]]
+            btns = cur_user.get('sql_answer')[order][page]
 
-        keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-button-{i}")]
-                    for i in range(len(btns))]
-        default.extend(keyboard)
-        markup = types.InlineKeyboardMarkup(default)
-        await bot.send_message(message.chat.id, 'Результаты поиска по вашему запросу:', reply_markup=markup, parse_mode='HTML')
+            keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-button-{i}")]
+                        for i in range(len(btns))]
+            default.extend(keyboard)
+            markup = types.InlineKeyboardMarkup(default)
+            await bot.send_message(message.chat.id, 'Результаты поиска по вашему запросу:', reply_markup=markup,
+                                   parse_mode='HTML')
+        else:
+            await bot.send_message(message.chat.id, 'К сожалению, ничего не удалось найти. Попробуйте изменить ваш запрос',
+                                   parse_mode='HTML')
     else:
-        await bot.send_message(message.chat.id, 'Запрос должен быть длиннее 5 символов', parse_mode='HTML')
+        await bot.send_message(message.chat.id, 'Запрос должен быть длинее 5 символов', parse_mode='HTML')
 
 @bot.message_handler(func=lambda message: message.text == 'Начать поиск')
 async def get_message(message):
