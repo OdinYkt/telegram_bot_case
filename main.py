@@ -55,14 +55,29 @@ empty_user = {
     }
     }
 
+guide0 = """Добро пожаловать в бота поиска проектов! 😎😎😎"""
+
+guide1 = """Для начала работы, нажмите кнопку <b>Начать поиск</b>. Затем вы можете использовать кнопки <b>Домен</b>, <b>Функциональная группа</b>, <b>Технологии</b> и <b>Методы</b>, чтобы установить фильтры поиска. Просто выберите нужную категорию и используйте стрелочки ⬅ ➡ для навигации по спискам.
+"""
+guide2 = """Вы также можете комбинировать различные фильтры. Используйте кнопки <b>Фильтры</b> и <b>Сбросить</b>, чтобы увидеть текущие фильтры или сбросить их. Когда вы закончите установку фильтров, нажмите <b>Показать</b>, чтобы увидеть список проектов."""
+guide3 = """Если вы знаете, что ищете, вы можете воспользоваться командой <b>/search <i>[запрос]</i></b> для поиска по названию и описанию."""
+guide4 = """Выберите интересующий вас проект, чтобы получить информацию о нём. Надеемся, что наш бот поможет вам найти идеальный проект для вашего бизнеса!"""
+guide5 = """Чтобы вызвать инструкцию заново введите <b>/guide</b>"""
+guide = (guide0, guide1, guide2, guide3, guide4, guide5)
+
 @bot.message_handler(commands=['start'])
 async def send_welcome(message):
     users[message.chat.id] = copy.deepcopy(empty_user)
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     btn1 = types.KeyboardButton('Начать поиск')
-    btn2 = types.KeyboardButton('Инструкция')
+    btn2 = types.KeyboardButton('Инструкция', )
     markup.add(btn1, btn2)
     await bot.send_message(message.chat.id, f'Здравствуйте, {message.chat.first_name}', reply_markup=markup)
+
+@bot.message_handler(commands=['guide'])
+async def send_welcome(message):
+    for _guide in guide:
+        await bot.send_message(message.chat.id, _guide, parse_mode='HTML')
 
 @bot.message_handler(commands=['search'])
 async def send_welcome(message):
@@ -74,31 +89,32 @@ async def send_welcome(message):
     cur_user = users.get(message.chat.id)
     text = message.text[7:]
     filters = cur_user.get('filter')
+    if len(text) > 5:
+        names = get_columns_with_filter(where=filters, columns=['name', 'description'])
+        str_for_search = [column[0]+' '+column[1] for column in names]
+        result = []
+        for i in range(len(str_for_search)):
+            rating = fuzz.WRatio(str_for_search[i].lower(), text.lower())
+            if rating > percent:
+                result.append([names[i][0], rating])
+        sorted_result = sorted(result, key=lambda x: x[1], reverse=True)
+        sorted_result = [x[0] for x in sorted_result]
+        cur_user.get('sql_answer')[order] = [sorted_result[i:i + 10] for i in range(0, len(sorted_result), 10)]
+        page, pages = 0, len(cur_user.get('sql_answer')[order])
+        cur_user.get('for_button')[order] = [page, pages]
 
-    names = get_columns_with_filter(where=filters, columns=['name', 'description'])
-    str_for_search = [column[0]+' '+column[1] for column in names]
-    result = []
-    for i in range(len(str_for_search)):
-        rating = fuzz.WRatio(str_for_search[i].lower(), text.lower())
-        if rating > percent:
-            result.append([names[i][0], rating])
-    sorted_result = sorted(result, key=lambda x: x[1], reverse=True)
-    sorted_result = [x[0] for x in sorted_result]
-    cur_user.get('sql_answer')[order] = [sorted_result[i:i + 10] for i in range(0, len(sorted_result), 10)]
-    page, pages = 0, len(cur_user.get('sql_answer')[order])
-    cur_user.get('for_button')[order] = [page, pages]
+        default = [[types.InlineKeyboardButton(text='⬅', callback_data=f'{order}-page_down'),
+                    types.InlineKeyboardButton(text=f'Стр. {page + 1}/{pages}', callback_data='none-none-none'),
+                    types.InlineKeyboardButton(text='➡', callback_data=f'{order}-page_up')]]
+        btns = cur_user.get('sql_answer')[order][page]
 
-    default = [[types.InlineKeyboardButton(text='⬅', callback_data=f'{order}-page_down'),
-                types.InlineKeyboardButton(text=f'Стр. {page + 1}/{pages}', callback_data='none-none-none'),
-                types.InlineKeyboardButton(text='➡', callback_data=f'{order}-page_up')]]
-    btns = cur_user.get('sql_answer')[order][page]
-
-    keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-button-{i}")]
-                for i in range(len(btns))]
-    default.extend(keyboard)
-    markup = types.InlineKeyboardMarkup(default)
-    await bot.send_message(message.chat.id, 'Результаты поиска по вашему запросу:', reply_markup=markup, parse_mode='HTML')
-
+        keyboard = [[types.InlineKeyboardButton(text=btns[i], callback_data=f"{order}-button-{i}")]
+                    for i in range(len(btns))]
+        default.extend(keyboard)
+        markup = types.InlineKeyboardMarkup(default)
+        await bot.send_message(message.chat.id, 'Результаты поиска по вашему запросу:', reply_markup=markup, parse_mode='HTML')
+    else:
+        await bot.send_message(message.chat.id, 'Запрос должен быть длиннее 5 символов', parse_mode='HTML')
 
 @bot.message_handler(func=lambda message: message.text == 'Начать поиск')
 async def get_message(message):
@@ -144,8 +160,9 @@ async def show_filters(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Инструкция')
 async def show_guide(message):
-    #прописать вывод инструкции
-    await bot.send_message(message.chat.id, 'Инструкция')
+    for _guide in guide:
+        await bot.send_message(message.chat.id, _guide, parse_mode='HTML')
+
 
 
 @bot.message_handler(func=lambda _message: _message.text.split()[0] in ('Домен', 'Функц.', 'Технология',
@@ -190,9 +207,6 @@ async def filter_buttons(message):
         markup = types.InlineKeyboardMarkup(default)
         await bot.send_message(message.chat.id, answer, reply_markup=markup, parse_mode='HTML')
 
-# @bot.callback_query_handler(func=lambda call: call.data == 'None')
-# async def skip_none(call):
-#     pass
 
 @bot.callback_query_handler(func=lambda call: call.data.split('-')[0] == 'name'
                                               and call.data.split('-')[1] == 'button')
@@ -270,7 +284,7 @@ async def show_categories(call):
     await bot.send_message(call.message.chat.id, f'— {btns[i]}')
     await bot.send_message(call.message.chat.id, f'Выбрано {number} записи')
 
-'✅'
+
 
 if __name__ == '__main__':
     asyncio.run(bot.polling())
