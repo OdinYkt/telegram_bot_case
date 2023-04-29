@@ -20,7 +20,7 @@ def new_table():
         cur.execute(insert_table, row)
 
 
-def get_columns_with_filter(where, columns=None, order=None):
+def get_columns_with_filter(where, columns=None, order=None, for_search=False):
     # устанавливаем соединение с БД
     # формируем запрос SQL
     # columns = ['name', 'domen', 'technology', 'metod', 'func_group']
@@ -30,6 +30,9 @@ def get_columns_with_filter(where, columns=None, order=None):
         columns = ['name']
 
     query = f"SELECT {', '.join(columns)} FROM projects WHERE "
+    if for_search:
+        _flag = False
+        query = "SELECT * FROM projects WHERE "
 
     flag = False
     for key, value in where.items():
