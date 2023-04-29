@@ -5,6 +5,8 @@ Main functionality - navigation through the Gazprom Neft project database.
 Implemented an inline keyboard with page switching, filtering by categories, and searching by user query.
 ## Used:
 SQLite, fuzzywuzzy, telebot, asyncio
+
 ![Logo](https://i.postimg.cc/0NGPWh63/photo-2023-04-25-23-56-53.jpg)
+### Some screens
 ![img](https://i.postimg.cc/NjmcFZxM/image.png)
 ![img](https://i.postimg.cc/9MNSJBBK/image.png)
